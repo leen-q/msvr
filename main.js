@@ -7,6 +7,12 @@ let spaceball;                  // A SimpleRotator object that lets the user rot
 let maxR = 1;
 let stereoCamera;
 
+let texture;
+
+let webCameraTexture;
+let webCameraVideo;
+let webCamera;
+
 function deg2rad(angle) {
     return angle * Math.PI / 180;
 }
@@ -110,6 +116,13 @@ function draw() {
     gl.uniformMatrix4fv(shProgram.iModelViewMatrix, false, noRot);
     gl.uniformMatrix4fv(shProgram.iProjectionMatrix, false, projection);
 
+    gl.bindTexture(gl.TEXTURE_2D, webCameraTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, webCameraVideo);
+    webCamera.Draw();
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
     let matAccumLeft = m4.multiply(translateToLeft, matAccum);
     let matAccumRight = m4.multiply(translateToRight, matAccum);
 
@@ -196,7 +209,7 @@ function applyLeftFrustum (stereoCamera) {
     let right = (c * near) / convergence;
   
     return m4.orthographic(left, right, bottom, top, near, far);
-  };
+}
 
   function applyRightFrustum (stereoCamera) {
     let { eyeSeparation, convergence, aspectRatio, fov, near, far } = stereoCamera;
@@ -211,7 +224,7 @@ function applyLeftFrustum (stereoCamera) {
     let right = (b * near) / convergence;
 
     return m4.orthographic(left, right, bottom, top, near, far);
-  };
+}
 
 
 // Function to update the surface with the new max value of parameter r
@@ -226,14 +239,17 @@ function updateSurface() {
     draw();
 }
 
+function updateWebCamera() {
+    draw();
+    window.requestAnimationFrame(updateWebCamera);
+}
+
 function LoadTexture() {
 
-    var texture = gl.createTexture();
+    texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,0,255,255]));
 
     var image = new Image();
     image.crossOrigin = "anonymous";
@@ -246,6 +262,24 @@ function LoadTexture() {
     }
     );
 }
+
+function LoadWebCameraTexture() {
+
+    webCameraTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, webCameraTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+function getWebCamera() {
+    return new Promise((resolve) =>
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: false })
+        .then((s) => resolve(s))
+    );
+  };
 
 /* Initialize the WebGL context. Called from init() */
 function initGL() {
@@ -265,7 +299,14 @@ function initGL() {
     let data = CreateSurfaceData();
     surface.BufferData(data.vertices, data.textCoords);
 
+    webCamera = new Model('WebCamera');
+    webCamera.BufferData(
+        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,],
+        [1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1]
+    );
+
     LoadTexture();
+    LoadWebCameraTexture();
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -314,10 +355,17 @@ function init() {
         if ( ! gl ) {
             throw "Browser does not support WebGL";
         }
+
+        webCameraVideo = document.createElement("video");
+        webCameraVideo.setAttribute("autoplay", true);
+        window.vid = webCameraVideo;
+
+        getWebCamera().then((stream) => (webCameraVideo.srcObject = stream));
+
     }
     catch (e) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Sorry, could not get a WebGL graphics context.</p>";
+            "<p>Sorry, could not get a WebGL graphics context.</p>" + e;
         return;
     }
     try {
@@ -332,4 +380,5 @@ function init() {
     spaceball = new TrackballRotator(canvas, draw, 0);
 
     updateSurface();
+    updateWebCamera();
 }
