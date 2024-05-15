@@ -435,8 +435,8 @@ function init() {
             "deviceorientation",
             (event) => {
                 orientationEvent.alpha = event.alpha === null ? 0 : event.alpha;
-                orientationEvent.gamma = event.beta === null ? 0 : event.beta;
-                orientationEvent.beta = event.gamma === null ? 0 : event.gamma;
+                orientationEvent.gamma = event.gamma === null ? 0 : event.gamma;
+                orientationEvent.beta = event.beta === null ? 0 : event.beta;
             },
             true,
         );
