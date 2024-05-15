@@ -13,8 +13,7 @@ let webCameraTexture;
 let webCameraVideo;
 let webCamera;
 
-let sensor;
-let reading = { x: 0, y: 0, z: 0 };
+let orientationEvent = { alpha: 0, beta: 0, gamma: 0 };
 
 function deg2rad(angle) {
     return angle * Math.PI / 180;
@@ -96,12 +95,6 @@ function draw() {
 
     let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0);
 
-    let matAccel = getAccelMatrix();
-    let matTr = m4.translation(0, 0, -1);
-    modelView = m4.multiply(matAccel, matTr);
-
-    let matAccum = m4.multiply(rotateToPointZero, modelView);
-
     let noRot = m4.multiply(rotateToPointZero, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 
     const stereoCamera = {
@@ -130,6 +123,23 @@ function draw() {
 
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    if (
+        orientationEvent.alpha &&
+        orientationEvent.beta &&
+        orientationEvent.gamma
+    ) {
+        let rotationMatrix = getRotationMatrix(
+            orientationEvent.alpha,
+            orientationEvent.beta,
+            orientationEvent.gamma
+        );
+        let translationMatrix = m4.translation(0, 0, -1);
+
+        modelView = m4.multiply(rotationMatrix, translationMatrix);
+    }
+
+    let matAccum = m4.multiply(rotateToPointZero, modelView);
 
     let matAccumLeft = m4.multiply(translateToLeft, matAccum);
     let matAccumRight = m4.multiply(translateToRight, matAccum);
@@ -289,21 +299,34 @@ function getWebCamera() {
     );
 };
 
-function getAccelMatrix() {
-    let matAccel1 = m4.axisRotation([1, 0, 0], 0.5 * Math.PI * reading.y * 0.1)
-    let matAccel2 = m4.axisRotation([0, 1, 0], -0.5 * Math.PI * reading.x * 0.1)
-    let matAccel = m4.multiply(matAccel1, matAccel2);
-    return matAccel;
-}
+function getRotationMatrix(alpha, beta, gamma) {
+    var _x = beta ? deg2rad(beta) : 0;
+    var _y = gamma ? deg2rad(gamma) : 0;
+    var _z = alpha ? deg2rad(alpha) : 0;
 
-function readAccelerometer() {
-    sensor = new Accelerometer({ frequency: 60 });
-    sensor.addEventListener("reading", () => {
-        reading.x = sensor.x
-        reading.y = sensor.y
-        reading.z = sensor.z
-    });
-    sensor.start();
+    var cX = Math.cos(_x);
+    var cY = Math.cos(_y);
+    var cZ = Math.cos(_z);
+    var sX = Math.sin(_x);
+    var sY = Math.sin(_y);
+    var sZ = Math.sin(_z);
+
+    var m11 = cZ * cY - sZ * sX * sY;
+    var m12 = -cX * sZ;
+    var m13 = cY * sZ * sX + cZ * sY;
+
+    var m21 = cY * sZ + cZ * sX * sY;
+    var m22 = cZ * cX;
+    var m23 = sZ * sY - cZ * cY * sX;
+
+    var m31 = -cX * sY;
+    var m32 = sX;
+    var m33 = cX * cY;
+
+    return [m11, m12, m13, 0,
+        m21, m22, m23, 0,
+        m31, m32, m33, 0,
+        0, 0, 0, 1];
 }
 
 /* Initialize the WebGL context. Called from init() */
@@ -373,7 +396,6 @@ function createProgram(gl, vShader, fShader) {
  * initialization function that will be called when the page has loaded
  */
 function init() {
-    readAccelerometer();
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
@@ -407,4 +429,16 @@ function init() {
 
     updateSurface();
     updateWebCamera();
+
+    if (window.DeviceOrientationEvent) {
+        window.addEventListener(
+            "deviceorientation",
+            (event) => {
+                orientationEvent.alpha = event.alpha === null ? 0 : event.alpha;
+                orientationEvent.gamma = event.beta === null ? 0 : event.beta;
+                orientationEvent.beta = event.gamma === null ? 0 : event.gamma;
+            },
+            true,
+        );
+    }
 }
