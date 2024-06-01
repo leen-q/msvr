@@ -1,13 +1,11 @@
 A project that implements the software delivering anaglyphic stereo image of the Richmond Minimum Surface.
 
 New functionality:
-  - Video capturing
+  - Spatial audio
 
-![image](https://github.com/leen-q/msvr/assets/65345209/868a3791-11d8-45ec-84bc-0d10740fc0a9)
+![image](https://github.com/leen-q/msvr/assets/65345209/812d3901-7630-4ff8-96c3-3fec7b9c0fbb)
 
-![image](https://github.com/leen-q/msvr/assets/65345209/e66caf72-4890-4f15-821c-cd7047d7e93e)
-
-![image](https://github.com/leen-q/msvr/assets/65345209/1195ecfa-372a-424b-b4af-3be98c92895f)
+![image](https://github.com/leen-q/msvr/assets/65345209/e6240ac6-aaeb-40e4-ae77-766804f6493f)
 
 
-Demonstration in PA2gif.gif.
+Demonstration in CGW_example.mp4.
