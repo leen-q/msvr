@@ -10,6 +10,8 @@ uniform mat4 ModelViewMatrix;
 uniform mat4 ProjectionMatrix;
 varying vec3 vertexPosition;
 
+uniform bool isSphere;
+
 void main() {
     vec4 vertex4 = ModelViewMatrix * vec4(vertex, 1.0);
     vertexPosition = vec3(vertex4) / vertex4.w;
@@ -33,7 +35,17 @@ const fragmentShaderSource = `
 varying vec2 textInterp; 
 uniform sampler2D tmu;
 
+uniform bool isSphere;
+
 void main() {
-    vec4 textColor = texture2D(tmu, textInterp);
-    gl_FragColor = textColor;
+
+    if (isSphere)
+    {
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    }
+    else 
+    {
+        vec4 textColor = texture2D(tmu, textInterp);
+        gl_FragColor = textColor;
+    }
 }`;
